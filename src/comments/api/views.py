@@ -28,8 +28,11 @@ from posts.api.pagination import PostLimitOffsetPagination, PostPageNumberPagina
 
 from comments.models import Comment
 
+from rest_framework.mixins import DestroyModelMixin, UpdateModelMixin
+
 from comments.api.serializers import (
     CommentSerializer,
+    CommentListSerializer,
     CommentDetailSerializer,
     create_comment_serializer,
 )
@@ -57,7 +60,7 @@ class CommentCreateAPIView(CreateAPIView):
 
 class CommentListAPIView(ListAPIView):
     # queryset = Post.objects.all()
-    serializer_class = CommentSerializer
+    serializer_class = CommentListSerializer
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['content','user__first_name']  #http://127.0.0.1:8000/api/posts/?search=post&q=better&ordering=-title
     # pagination_class = LimitOffsetPagination #PageNumberPagination
@@ -67,7 +70,7 @@ class CommentListAPIView(ListAPIView):
 
     def get_queryset(self, *args, **kwargs):
         # queryset_list = super(PostListAPIView,self).get_queryset(*args, **kwargs)
-        queryset_list = Comment.objects.all()
+        queryset_list = Comment.objects.filter(id__gte=0)
         query = self.request.GET.get("q")
         if query:
             queryset_list = queryset_list.filter(
@@ -78,10 +81,24 @@ class CommentListAPIView(ListAPIView):
         return queryset_list
 
 
-class CommentDetailAPIView(RetrieveAPIView):
-    queryset = Comment.objects.all()
+# class CommentEditAPIView(RetrieveAPIView):
+#     queryset = Comment.objects.all()
+#     serializer_class = CommentDetailSerializer
+#     # lookup_field = 'slug'
+
+
+class CommentDetailAPIView(DestroyModelMixin, UpdateModelMixin, RetrieveAPIView):
+    queryset = Comment.objects.filter(id__gte=0)
     serializer_class = CommentDetailSerializer
-    # lookup_field = 'slug'
+    permission_classes = [IsAuthenticatedOrReadOnly,IsOwerOrReadOnly]
+
+
+    def put(self, request, *args, **kwargs):
+        return self.update(request, *args, **kwargs)
+
+    def delete(self, request, *args, **kwargs):
+        return self.destroy(request, *args, **kwargs)
+
 
 # class PostUpdateAPIView(RetrieveUpdateAPIView):
 # # class PostUpdateAPIView(UpdateAPIView):

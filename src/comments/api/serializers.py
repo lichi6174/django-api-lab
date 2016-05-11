@@ -67,8 +67,31 @@ class CommentSerializer(ModelSerializer):
             'id',
             'content_type',
             'object_id',
-            'content',
             'parent',
+            'content',
+            'reply_count',
+            'timestamp',
+        ]
+
+    def get_reply_count(self,obj):
+        if obj.is_parent:
+            return obj.children().count()
+        return 0
+
+class CommentListSerializer(ModelSerializer):
+    url = HyperlinkedIdentityField(
+        view_name='comments-api:detail',
+    )
+    reply_count = SerializerMethodField()
+    class Meta:
+        model = Comment
+        fields = [
+            'id',
+            'url',
+            # 'content_type',
+            # 'object_id',
+            # 'parent',
+            'content',
             'reply_count',
             'timestamp',
         ]
@@ -90,18 +113,32 @@ class CommentChildSerializer(ModelSerializer):
 
 class CommentDetailSerializer(ModelSerializer):
     replies = SerializerMethodField()
+    content_object_url = SerializerMethodField()
     reply_count = SerializerMethodField()
     class Meta:
         model = Comment
         fields = [
             'id',
-            'content_type',
-            'object_id',
+            # 'content_type',
+            # 'object_id',
             'content',
             'timestamp',
             'reply_count',
             'replies',
+            'content_object_url',
         ]
+        read_only_fields = [
+            # 'content_type',
+            # 'object_id',
+            'reply_count',
+            'relies',
+        ]
+
+    def get_content_object_url(self,obj):
+        try:
+            return obj.content_object.get_api_url()
+        except:
+            return None
 
     def get_replies(self,obj):
         if obj.is_parent:
@@ -112,3 +149,13 @@ class CommentDetailSerializer(ModelSerializer):
         if obj.is_parent:
             return obj.children().count()
         return 0
+
+
+class CommentEditSerializer(ModelSerializer):
+    class Meta:
+        model = Comment
+        fields = [
+            'id',
+            'content',
+            'timestamp',
+        ]
